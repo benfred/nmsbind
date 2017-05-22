@@ -27,13 +27,8 @@ install:
       conda install -q conda-build
     }
 build_script:
-- ps: |
-    if ($env:PYTHON) {
-      python setup.py sdist
-      pip install --verbose dist\nmsbind-0.0.1.tar.gz
-    } else {
-      conda build conda.recipe
-      conda install --use-local nmsbind
-    }
+- cmd: |
+    python setup.py sdist
+    pip install --verbose dist\nmsbind-0.0.1.tar.gz
 test_script:
 - cmd: python tests\nmsbind_test.py
