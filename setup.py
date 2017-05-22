@@ -113,7 +113,7 @@ setup(
     description='Alternate Python Bindings for NMSLIB',
     long_description='',
     ext_modules=ext_modules,
-    install_requires=['pybind11>=1.7', 'numpy'],
+    install_requires=['pybind11>=2.0', 'numpy'],
     cmdclass={'build_ext': BuildExt},
     test_suite="tests",
     zip_safe=False,

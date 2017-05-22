@@ -1,7 +1,6 @@
 version: '{build}'
 image: Visual Studio 2015
 platform:
-- x86
 - x64
 environment:
   global:
@@ -13,6 +12,7 @@ environment:
 install:
 - cmd: '"%VS140COMNTOOLS%\..\..\VC\vcvarsall.bat" %PLATFORM%'
 - ps: |
+    git submodule update --init --recursive
     if ($env:PYTHON) {
       if ($env:PLATFORM -eq "x64") { $env:PYTHON = "$env:PYTHON-x64" }
       $env:PATH = "C:\Python$env:PYTHON\;C:\Python$env:PYTHON\Scripts\;$env:PATH"
