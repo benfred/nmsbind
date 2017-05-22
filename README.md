@@ -2,6 +2,8 @@ nmsbind
 =======
 
 [![Build Status](https://travis-ci.org/benfred/nmsbind.svg?branch=master)](https://travis-ci.org/benfred/nmsbind)
+<!--[![Windows Build
+status](https://ci.appveyor.com/api/projects/status/025rl7knj2m62hs5?svg=true)](https://ci.appveyor.com/project/benfred/nmsbind)-->
 
 nmsbind: Alternate Python Bindings for NMSLIB
 
