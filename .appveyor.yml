@@ -11,8 +11,8 @@ environment:
   - PYTHON: 36
 install:
 - cmd: '"%VS140COMNTOOLS%\..\..\VC\vcvarsall.bat" %PLATFORM%'
+- cmd: git submodule update --init --recursive
 - ps: |
-    git submodule update --init --recursive
     if ($env:PYTHON) {
       if ($env:PLATFORM -eq "x64") { $env:PYTHON = "$env:PYTHON-x64" }
       $env:PATH = "C:\Python$env:PYTHON\;C:\Python$env:PYTHON\Scripts\;$env:PATH"
@@ -36,4 +36,4 @@ build_script:
       conda install --use-local nmsbind
     }
 test_script:
-- ps: python tests\nmsbind_test.py
+- cmd: python tests\nmsbind_test.py
