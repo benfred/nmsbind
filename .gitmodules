@@ -1,0 +1,3 @@
+[submodule "nmslib"]
+	path = nmslib
+	url = https://github.com/searchivarius/nmslib
