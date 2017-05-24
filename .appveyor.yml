@@ -28,7 +28,7 @@ install:
     }
 build_script:
 - cmd: |
-    python setup.py sdist
-    pip install --verbose dist\nmsbind-0.0.1.tar.gz
+    pip install scipy
+    pip install -e .
 test_script:
 - cmd: python tests\nmsbind_test.py

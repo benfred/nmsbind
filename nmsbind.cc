@@ -164,7 +164,7 @@ struct IndexWrapper {
 
         } else if (data_type == DATATYPE_SPARSE_VECTOR) {
             // the attr calls will fail with an attribute error, but this fixes the legacy
-            // untitest case
+            // unittest case
             if (!py::hasattr(input, "indptr")) {
                 throw py::value_error("expect CSR matrix here");
             }
@@ -481,7 +481,7 @@ AnyParams loadParams(py::object o) {
         return ret;
     }
 
-    throw std::invalid_argument("Uknown type for parameters");
+    throw std::invalid_argument("Unknown type for parameters");
 }
 
 /// Function Definitions for backwards compatibility
