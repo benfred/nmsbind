@@ -44,7 +44,8 @@ import numpy
 data = numpy.random.randn(10000, 100).astype(numpy.float32)
 
 # initialize a new index, using a HNSW index on Cosine Similarity
-index = nmsbind.init(data, method='hnsw', space_type='cosinesimil')
+index = nmsbind.init(method='hnsw', space_type='cosinesimil')
+index.addDataPointBatch(data)
 index.createIndex({'post': 2})
 
 # query for the nearest neighbours of the first datapoint
@@ -58,6 +59,4 @@ This project is mainly a proof of concept and is currently lacking some of the f
 in the default nmslib bindings.
 
 TODO:
-  * incremental data addition (addDataPoint row at a time, also addDataPointBatch)
-  * support missing datatypes (SPARSE_VECTOR/STRING_AS_OBJECT)
   * Batch querying via knnQueryBatch

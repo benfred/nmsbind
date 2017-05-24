@@ -1,6 +1,8 @@
+import itertools
 import unittest
 
 import numpy as np
+from scipy.sparse import csr_matrix
 
 import nmsbind
 
@@ -16,16 +18,52 @@ def get_hitrate(ground_truth, ids):
 
 
 class NMSBindTest(unittest.TestCase):
-    def testCosine(self):
+    def testDenseCosine(self):
         np.random.seed(23)
         data = np.random.randn(1000, 10).astype(np.float32)
 
-        index = nmsbind.init(data=data, method='sw-graph', space='cosinesimil')
+        index = nmsbind.init(method='sw-graph', space='cosinesimil')
+        index.addDataPointBatch(data)
         index.createIndex()
 
         row = np.array([1, 1, 1, 1, 1, 1, 1, 1, 1, 1.])
         ids, distances = index.knnQuery(row, k=10)
-        self.assertTrue(get_hitrate(get_exact_cosine(row, data), ids) >= 9)
+        self.assertTrue(get_hitrate(get_exact_cosine(row, data), ids) >= 8)
+
+    def testStringLeven(self):
+        index = nmsbind.init(space='leven',
+                             dtype=nmsbind.DistType.INT,
+                             data_type=nmsbind.DataType.OBJECT_AS_STRING,
+                             method='small_world_rand')
+
+        strings = [''.join(x) for x in itertools.permutations(['a', 't', 'c', 'g'])]
+
+        index.addDataPointBatch(strings)
+
+        index.addDataPoint(len(index), "atat")
+        index.addDataPoint(len(index), "gaga")
+        index.createIndex()
+
+        for i, distance in zip(*index.knnQuery(strings[0])):
+            self.assertEqual(index.getDistance(0, i), distance)
+
+        self.assertEqual(len(index), len(strings) + 2)
+        self.assertEqual(index[0], strings[0])
+        self.assertEqual(index[len(index)-2], 'atat')
+
+    def testSparse(self):
+        index = nmsbind.init(method='small_world_rand', space='cosinesimil_sparse',
+                             data_type=nmsbind.DataType.SPARSE_VECTOR)
+        m = csr_matrix(np.array([[0., 2, 3, 0], [1, 2., 0, 0], [0, 0, 3, 3], [0, 0, 0, 1.0]]))
+        index.addDataPointBatch(m)
+        index.createIndex()
+
+        ids, distances = index.knnQuery([(1, 2.), (2, 3.)])
+        self.assertEqual(ids[0], 0)
+        self.assertEqual(distances[0], 0)
+
+        self.assertEqual(len(index), 4)
+        self.assertEqual(index[3], [(3, 1.0)])
 
 
 if __name__ == "__main__":
