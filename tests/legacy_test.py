@@ -7,7 +7,11 @@ import unittest
 import numpy.testing as nt
 import os
 import numpy as np
-from scipy.sparse import csr_matrix
+try:
+    from scipy.sparse import csr_matrix
+    has_scipy = True
+except ImportError:
+    has_scipy = False
 
 # tweak namespace here for testing
 import nmsbind as nmslib
@@ -102,6 +106,8 @@ class SparseTests(unittest.TestCase):
                           np.array([[0.1, 0, 0.2], [0, 0, 0.3], [0.4, 0.5, 0.6]], dtype=np.float32))
 
     def test_add_points_batch5(self):
+        if not has_scipy:
+            return
         row = np.array([0, 0, 1, 2, 2])
         col = np.array([0, 2, 1, 1, 2])
         data = np.array([0.3, 0.2, 0.4, 0.1, 0.6])

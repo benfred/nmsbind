@@ -2,7 +2,6 @@ import itertools
 import unittest
 
 import numpy as np
-from scipy.sparse import csr_matrix
 
 import nmsbind
 
@@ -54,8 +53,12 @@ class NMSBindTest(unittest.TestCase):
     def testSparse(self):
         index = nmsbind.init(method='small_world_rand', space='cosinesimil_sparse',
                              data_type=nmsbind.DataType.SPARSE_VECTOR)
-        m = csr_matrix(np.array([[0., 2, 3, 0], [1, 2., 0, 0], [0, 0, 3, 3], [0, 0, 0, 1.0]]))
-        index.addDataPointBatch(m)
+
+        index.addDataPoint(0, [(1, 2.), (2, 3.)])
+        index.addDataPoint(1, [(0, 1.), (1, 2.)])
+        index.addDataPoint(2, [(2, 3.), (3, 3.)])
+        index.addDataPoint(3, [(3, 1.)])
+
         index.createIndex()
 
         ids, distances = index.knnQuery([(1, 2.), (2, 3.)])

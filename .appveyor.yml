@@ -28,7 +28,6 @@ install:
     }
 build_script:
 - cmd: |
-    pip install scipy
     pip install -e .
 test_script:
 - cmd: python tests\nmsbind_test.py
