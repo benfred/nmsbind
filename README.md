@@ -7,7 +7,7 @@ status](https://ci.appveyor.com/api/projects/status/025rl7knj2m62hs5?svg=true)](
 
 nmsbind: Alternate Python Bindings for NMSLIB
 
-This project is a proposal of using [pybind11](https://github.com/pybind/pybind11) to
+This project uses [pybind11](https://github.com/pybind/pybind11) to
 build Python bindings for [the Non-Metric Space Library (NMSLIB)](https://github.com/searchivarius/nmslib).
 
 NMSLIB is a great library that provides many different methods for calculating approximate nearest neighbours.

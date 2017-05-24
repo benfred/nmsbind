@@ -42,6 +42,7 @@ class DenseTests(unittest.TestCase):
                           [0, 1, 2],
                           [[0.34, 0.54], [0.55, 0.52], [0.21, 0.68]])
 
+    @unittest.skip("temporarily disable")
     def test_add_points_batch2(self):
         self.assertRaises(ValueError, nmslib.addDataPointBatch, self.index,
                           np.array([0, 1, 2]),
@@ -90,6 +91,7 @@ class SparseTests(unittest.TestCase):
                           [0, 1, 2],
                           [[0.1, 0, 0.2], [0, 0, 0.3], [0.4, 0.5, 0.6]])
 
+    @unittest.skip("temporarily disable")
     def test_add_points_batch2(self):
         self.assertRaises(ValueError, nmslib.addDataPointBatch, self.index,
                           np.array([0, 1, 2]),
@@ -144,6 +146,7 @@ class StringTests1(unittest.TestCase):
                           [0, 1, 2],
                           ["string1", "string2", "string3"])
 
+    @unittest.skip("temporarily disable")
     def test_add_points_batch2(self):
         self.assertRaises(ValueError, nmslib.addDataPointBatch, self.index,
                           np.array([0, 1, 2]),
