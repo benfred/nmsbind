@@ -99,7 +99,7 @@ struct IndexWrapper {
 
             // Distribute the queries dynamically throughout the thread pool
             #pragma omp for schedule(dynamic, 8)
-            for (size_t i = 0; i < queries.size(); ++i) {
+            for (int i = 0; i < static_cast<int>(queries.size()); ++i) {
                 // Add the result to the output. Note the query function releases the GIL
                 // during the main query so that this can run in parallel (and re-acquires
                 // before returning)

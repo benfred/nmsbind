@@ -7,7 +7,7 @@ status](https://ci.appveyor.com/api/projects/status/025rl7knj2m62hs5?svg=true)](
 
 nmsbind: Alternate Python Bindings for NMSLIB
 
-This project is a proof of concept of using [pybind11](https://github.com/pybind/pybind11) to
+This project is a proposal of using [pybind11](https://github.com/pybind/pybind11) to
 build Python bindings for [the Non-Metric Space Library (NMSLIB)](https://github.com/searchivarius/nmslib).
 
 NMSLIB is a great library that provides many different methods for calculating approximate nearest neighbours.
@@ -54,9 +54,3 @@ ids, distances = index.knnQuery(data[0], k=10)
 
 This library has been tested with Python 2.7 and 3.5/3.6. Running 'tox' will
 build and run unittests on all these versions.
-
-This project is mainly a proof of concept and is currently lacking some of the features 
-in the default nmslib bindings.
-
-TODO:
-  * Batch querying via knnQueryBatch
