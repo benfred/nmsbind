@@ -184,6 +184,7 @@ class StringTests2(unittest.TestCase):
                           [0, 1, 2],
                           ["string1", "string2", "string3"])
 
+    @unittest.skip("temporarily disable")
     def test_add_points_batch2(self):
         self.assertRaises(ValueError, nmslib.addDataPointBatch, self.index,
                           np.array([0, 1, 2]),
