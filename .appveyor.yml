@@ -30,4 +30,4 @@ build_script:
 - cmd: |
     pip install -e .
 test_script:
-- cmd: python tests\nmsbind_test.py
+- cmd: python setup.py test

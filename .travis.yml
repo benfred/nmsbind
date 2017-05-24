@@ -31,7 +31,7 @@ install:
   - travis_retry python setup.py build install
 
 script:
-- python tests/nmsbind_test.py
+- python setup.py test
 
 cache:
   - apt

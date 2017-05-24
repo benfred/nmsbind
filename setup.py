@@ -4,7 +4,7 @@ from setuptools.command.build_ext import build_ext
 import sys
 import setuptools
 
-__version__ = '0.0.2'
+__version__ = '0.0.3'
 
 libdir = os.path.join(".", "nmslib", "similarity_search")
 library_file = os.path.join(libdir, "release", "libNonMetricSpaceLib.a")
@@ -68,12 +68,19 @@ def cpp_flag(compiler):
 class BuildExt(build_ext):
     """A custom build extension for adding compiler-specific options."""
     c_opts = {
-        'msvc': ['/EHsc'],
+        'msvc': ['/EHsc', '/openmp', '/O2'],
+        'unix': ['-O3',],
+    }
+    link_opts = {
         'unix': [],
+        'msvc': [],
     }
 
     if sys.platform == 'darwin':
         c_opts['unix'] += ['-stdlib=libc++', '-mmacosx-version-min=10.7']
+    else:
+        c_opts['unix'].append("-fopenmp")
+        link_opts['unix'].append('-fopenmp')
 
     def build_extensions(self):
         ct = self.compiler.compiler_type
@@ -91,7 +98,8 @@ class BuildExt(build_ext):
         import pybind11
         import numpy as np
         for ext in self.extensions:
-            ext.extra_compile_args = opts
+            ext.extra_compile_args.extend(opts)
+            ext.extra_link_args.extend(self.link_opts.get(ct, []))
             ext.include_dirs.extend([
                 # Path to pybind11 headers
                 pybind11.get_include(),

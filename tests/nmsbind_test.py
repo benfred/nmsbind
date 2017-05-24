@@ -29,6 +29,10 @@ class NMSBindTest(unittest.TestCase):
         ids, distances = index.knnQuery(row, k=10)
         self.assertTrue(get_hitrate(get_exact_cosine(row, data), ids) >= 8)
 
+        results = index.knnQueryBatch([row, row], k=10)
+        self.assertTrue(get_hitrate(get_exact_cosine(row, data), results[0][0]) >= 8)
+
+
     def testStringLeven(self):
         index = nmsbind.init(space='leven',
                              dtype=nmsbind.DistType.INT,

@@ -34,6 +34,7 @@ template <typename dist_t> void exportIndex(py::module * m);
 template <typename dist_t> std::string distName();
 AnyParams loadParams(py::object o);
 void exportLegacyAPI(py::module * m);
+void freeObjectVector(ObjectVector * data);
 
 // Wrap a space/objectvector/index together for ease of use
 template <typename dist_t>
@@ -78,7 +79,42 @@ struct IndexWrapper {
         }
 
         std::unique_ptr<const Object> query(readObject(input));
-        KNNQuery<dist_t> knn(*space, query.get(), k);
+        return knnQueryObject(query.get(), k);
+    }
+
+    py::object knnQueryBatch(py::object input, size_t k, int num_threads) {
+        if (!index) {
+            throw std::invalid_argument("Must call createIndex or loadIndex before this method");
+        }
+
+        ObjectVector queries;
+        readObjectVector(input, &queries);
+
+        py::list ret;
+
+        #pragma omp parallel num_threads(num_threads)
+        if (1) {
+            // Initialize the newly created thread with python
+            py::gil_scoped_acquire l;
+
+            // Distribute the queries dynamically throughout the thread pool
+            #pragma omp for schedule(dynamic, 8)
+            for (size_t i = 0; i < queries.size(); ++i) {
+                // Add the result to the output. Note the query function releases the GIL
+                // during the main query so that this can run in parallel (and re-acquires
+                // before returning)
+                ret.append(knnQueryObject(queries[i], k));
+            }
+        }
+
+        // TODO(@benfred): some sort of RAII auto-destroy for this
+        freeObjectVector(&queries);
+
+        return ret;
+    }
+
+    py::object knnQueryObject(const Object * query, size_t k) {
+        KNNQuery<dist_t> knn(*space, query, k);
         {
             py::gil_scoped_release l;
             index->Search(&knn, -1);
@@ -248,9 +284,7 @@ struct IndexWrapper {
     }
 
     ~IndexWrapper() {
-        for (auto datum : data) {
-            delete datum;
-        }
+        freeObjectVector(&data);
     }
 
     std::string method;
@@ -379,6 +413,24 @@ void exportIndex(py::module * m) {
             "distances: array_like.\n"
             "    A 1D vector of the distance to each nearest neigbhour.\n")
 
+        .def("knnQueryBatch", &IndexWrapper<dist_t>::knnQueryBatch,
+            py::arg("queries"), py::arg("k") = 10, py::arg("num_threads") = 1,
+            "Performs multiple queries on the index, distributing the work over \n"
+            "a thread pool\n"
+            "Parameters\n"
+            "----------\n"
+            "input: list\n"
+            "    A list of queries to query for\n"
+            "k: int optional\n"
+            "    The number of neighbours to return\n"
+            "num_threads: int optional\n"
+            "    The number of threads to use\n"
+            "\n"
+            "Returns\n"
+            "----------\n"
+            "list:\n"
+            "   A list of tuples of (ids, distances)\n ")
+
         .def("loadIndex", &IndexWrapper<dist_t>::loadIndex,
             py::arg("filename"),
             "Loads the index from disk\n\n"
@@ -448,6 +500,12 @@ template <> std::string distName<int>() { return "Int"; }
 template <> std::string distName<float>() { return "Float"; }
 template <> std::string distName<double>() { return "Double"; }
 
+void freeObjectVector(ObjectVector * data) {
+    for (auto datum : *data) {
+        delete datum;
+    }
+}
+
 AnyParams loadParams(py::object o) {
     if (o.is_none()) {
         return AnyParams();
@@ -512,7 +570,7 @@ void exportLegacyAPI(py::module * m) {
         int insertions = py::cast<int>(self.attr("addDataPointBatch")(data, ids));
 
         py::array_t<int> positions(insertions);
-        for (size_t i = 0; i < insertions; ++i) {
+        for (int i = 0; i < insertions; ++i) {
             positions.mutable_at(i) = offset + i;
         }
         return positions;
@@ -546,9 +604,18 @@ void exportLegacyAPI(py::module * m) {
         return self.attr("getDistance")(pos1, post2);
     });
 
-    /*
-    PyObject* knnQueryBatch(PyObject* self, PyObject* args);
-    */
+    m->def("knnQueryBatch", [](py::object self, int num_threads, int k, py::object queries) {
+        py::list results = self.attr("knnQueryBatch")(queries, k, num_threads);
+
+        // return plain lists of just the ids
+        py::list ret;
+        for (size_t i = 0; i < results.size(); ++i) {
+            py::tuple current(results[i]);
+            ret.append(py::list(current[0]));
+        }
+        return ret;
+    });
+
     m->def("freeIndex", [](py::object self) { });
 }
 }  // namespace similarity
