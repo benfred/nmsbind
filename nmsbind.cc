@@ -43,8 +43,10 @@ struct IndexWrapper {
         const std::string & space_type,
         py::object space_params,
         DataType data_type,
-        DistType dist_type)
+        DistType dist_type,
+        bool print_progress = false)
       : method(method), space_type(space_type), data_type(data_type), dist_type(dist_type),
+        print_progress(print_progress),
         space(SpaceFactoryRegistry<dist_t>::Instance().CreateSpace(space_type,
                                                                    loadParams(space_params))) {
   }
@@ -54,14 +56,14 @@ struct IndexWrapper {
 
     py::gil_scoped_release l;
     auto factory = MethodFactoryRegistry<dist_t>::Instance();
-    index.reset(factory.CreateMethod(false, method, space_type, *space, data));
+    index.reset(factory.CreateMethod(print_progress, method, space_type, *space, data));
     index->CreateIndex(params);
   }
 
   void loadIndex(const std::string & filename) {
     py::gil_scoped_release l;
     auto factory = MethodFactoryRegistry<dist_t>::Instance();
-    index.reset(factory.CreateMethod(false, method, space_type, *space, data));
+    index.reset(factory.CreateMethod(print_progress, method, space_type, *space, data));
     index->LoadIndex(filename);
   }
 
@@ -291,14 +293,16 @@ struct IndexWrapper {
   std::string space_type;
   DataType data_type;
   DistType dist_type;
+  bool print_progress;
   std::unique_ptr<Space<dist_t>> space;
   std::unique_ptr<Index<dist_t>> index;
   ObjectVector data;
 };
 
 PYBIND11_PLUGIN(nmsbind) {
-  // TODO(@benfred): set up logging
-  initLibrary();
+  // TODO(@benfred): configurable logging
+  initLibrary(LIB_LOGSTDERR, NULL);
+
   py::module m(module_name, "Bindings for Non-Metric Space Library (NMSLIB)");
 
 #ifdef VERSION_INFO
@@ -321,21 +325,24 @@ PYBIND11_PLUGIN(nmsbind) {
   // version of the bindings
   m.def("init",
     [](const std::string & space, py::object space_params, const std::string & method,
-       DataType data_type, DistType dtype) {
+       DataType data_type, DistType dtype, bool print_progress) {
       py::object ret = py::none();
       switch (dtype) {
         case DISTTYPE_FLOAT: {
-          auto index = new IndexWrapper<float>(method, space, space_params, data_type, dtype);
+          auto index = new IndexWrapper<float>(method, space, space_params, data_type, dtype,
+                                               print_progress);
           ret = py::cast(index);
           break;
         }
         case DISTTYPE_DOUBLE: {
-          auto index = new IndexWrapper<double>(method, space, space_params, data_type, dtype);
+          auto index = new IndexWrapper<double>(method, space, space_params, data_type, dtype,
+                                                print_progress);
           ret = py::cast(index);
           break;
         }
         case DISTTYPE_INT: {
-          auto index = new IndexWrapper<int>(method, space, space_params, data_type, dtype);
+          auto index = new IndexWrapper<int>(method, space, space_params, data_type, dtype,
+                                             print_progress);
           ret = py::cast(index);
           break;
         }
@@ -350,6 +357,7 @@ PYBIND11_PLUGIN(nmsbind) {
     py::arg("method") = "hnsw",
     py::arg("data_type") = DATATYPE_DENSE_VECTOR,
     py::arg("dtype") = DISTTYPE_FLOAT,
+    py::arg("print_progress") = false,
     "This function initializes a new NMSLIB index\n\n"
     "Parameters\n"
     "----------\n"
