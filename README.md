@@ -44,12 +44,16 @@ import numpy
 data = numpy.random.randn(10000, 100).astype(numpy.float32)
 
 # initialize a new index, using a HNSW index on Cosine Similarity
-index = nmsbind.init(method='hnsw', space_type='cosinesimil')
+index = nmsbind.init(method='hnsw', space='cosinesimil')
 index.addDataPointBatch(data)
-index.createIndex({'post': 2})
+index.createIndex({'post': 2}, print_progress=True)
 
 # query for the nearest neighbours of the first datapoint
 ids, distances = index.knnQuery(data[0], k=10)
+
+# get all nearest neighbours for all the datapoint
+# using a pool of 4 threads to compute
+neighbours = index.knnQueryBatch(data, k=10, num_threads=4)
 ```
 
 This library has been tested with Python 2.7 and 3.5/3.6. Running 'tox' will

@@ -51,15 +51,13 @@ struct IndexWrapper {
         const std::string & space_type,
         py::object space_params,
         DataType data_type,
-        DistType dist_type,
-        bool print_progress = false)
+        DistType dist_type)
       : method(method), space_type(space_type), data_type(data_type), dist_type(dist_type),
-        print_progress(print_progress),
         space(SpaceFactoryRegistry<dist_t>::Instance().CreateSpace(space_type,
                                                                    loadParams(space_params))) {
   }
 
-  void createIndex(py::object index_params) {
+  void createIndex(py::object index_params, bool print_progress = false) {
     AnyParams params = loadParams(index_params);
 
     py::gil_scoped_release l;
@@ -68,7 +66,7 @@ struct IndexWrapper {
     index->CreateIndex(params);
   }
 
-  void loadIndex(const std::string & filename) {
+  void loadIndex(const std::string & filename, bool print_progress = false) {
     py::gil_scoped_release l;
     auto factory = MethodFactoryRegistry<dist_t>::Instance();
     index.reset(factory.CreateMethod(print_progress, method, space_type, *space, data));
@@ -294,7 +292,6 @@ struct IndexWrapper {
   std::string space_type;
   DataType data_type;
   DistType dist_type;
-  bool print_progress;
   std::unique_ptr<Space<dist_t>> space;
   std::unique_ptr<Index<dist_t>> index;
   ObjectVector data;
@@ -326,24 +323,21 @@ PYBIND11_PLUGIN(nmsbind) {
   // version of the bindings
   m.def("init",
     [](const std::string & space, py::object space_params, const std::string & method,
-       DataType data_type, DistType dtype, bool print_progress) {
+       DataType data_type, DistType dtype) {
       py::object ret = py::none();
       switch (dtype) {
         case DISTTYPE_FLOAT: {
-          auto index = new IndexWrapper<float>(method, space, space_params, data_type, dtype,
-                                               print_progress);
+          auto index = new IndexWrapper<float>(method, space, space_params, data_type, dtype);
           ret = py::cast(index);
           break;
         }
         case DISTTYPE_DOUBLE: {
-          auto index = new IndexWrapper<double>(method, space, space_params, data_type, dtype,
-                                                print_progress);
+          auto index = new IndexWrapper<double>(method, space, space_params, data_type, dtype);
           ret = py::cast(index);
           break;
         }
         case DISTTYPE_INT: {
-          auto index = new IndexWrapper<int>(method, space, space_params, data_type, dtype,
-                                             print_progress);
+          auto index = new IndexWrapper<int>(method, space, space_params, data_type, dtype);
           ret = py::cast(index);
           break;
         }
@@ -358,7 +352,6 @@ PYBIND11_PLUGIN(nmsbind) {
     py::arg("method") = "hnsw",
     py::arg("data_type") = DATATYPE_DENSE_VECTOR,
     py::arg("dtype") = DISTTYPE_FLOAT,
-    py::arg("print_progress") = false,
     "This function initializes a new NMSLIB index\n\n"
     "Parameters\n"
     "----------\n"
@@ -396,11 +389,14 @@ void exportIndex(py::module * m) {
   py::class_<IndexWrapper<dist_t>>(*m, index_name.c_str())
     .def("createIndex", &IndexWrapper<dist_t>::createIndex,
       py::arg("index_params") = py::none(),
+      py::arg("print_progress") = false,
       "Creates the index, and makes it available for querying\n\n"
       "Parameters\n"
       "----------\n"
       "index_params: dict optional\n"
-      "    Dictionary of optional parameters to use in indexing\n")
+      "    Dictionary of optional parameters to use in indexing\n"
+      "print_progress: bool optional\n"
+      "    Whether or not to display progress bar when creating index\n")
 
     .def("knnQuery", &IndexWrapper<dist_t>::knnQuery,
       py::arg("vector"), py::arg("k") = 10,
@@ -439,11 +435,14 @@ void exportIndex(py::module * m) {
 
     .def("loadIndex", &IndexWrapper<dist_t>::loadIndex,
       py::arg("filename"),
+      py::arg("print_progress") = false,
       "Loads the index from disk\n\n"
       "Parameters\n"
       "----------\n"
       "filename: str\n"
-      "    The filename to read from\n")
+      "    The filename to read from\n",
+      "print_progress: bool optional\n"
+      "    Whether or not to display progress bar when creating index\n")
 
     .def("saveIndex", &IndexWrapper<dist_t>::saveIndex,
       py::arg("filename"),
