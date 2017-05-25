@@ -3,12 +3,19 @@
 #include <pybind11/numpy.h>
 #include <pybind11/stl.h>
 
+#include <algorithm>
+#include <memory>
+#include <sstream>
+#include <stdexcept>
+#include <string>
+#include <vector>
+
 #include "nmslib/similarity_search/include/init.h"
 #include "nmslib/similarity_search/include/index.h"
-#include "nmslib/similarity_search/include/space.h"
 #include "nmslib/similarity_search/include/knnquery.h"
 #include "nmslib/similarity_search/include/knnqueue.h"
 #include "nmslib/similarity_search/include/methodfactory.h"
+#include "nmslib/similarity_search/include/space.h"
 #include "nmslib/similarity_search/include/spacefactory.h"
 #include "nmslib/similarity_search/include/space/space_sparse_vector.h"
 
