@@ -90,7 +90,7 @@ struct IndexWrapper {
         ObjectVector queries;
         readObjectVector(input, &queries);
 
-        py::list ret;
+        py::list ret(queries.size());
 
         #pragma omp parallel num_threads(num_threads)
         if (1) {
@@ -103,7 +103,7 @@ struct IndexWrapper {
                 // Add the result to the output. Note the query function releases the GIL
                 // during the main query so that this can run in parallel (and re-acquires
                 // before returning)
-                ret.append(knnQueryObject(queries[i], k));
+                ret[i] = knnQueryObject(queries[i], k);
             }
         }
 
