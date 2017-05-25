@@ -1,4 +1,5 @@
 // Copyright 2017 Ben Frederickson
+
 #include <pybind11/pybind11.h>
 #include <pybind11/numpy.h>
 #include <pybind11/stl.h>
@@ -88,7 +89,13 @@ struct IndexWrapper {
     }
 
     std::unique_ptr<const Object> query(readObject(input));
-    return knnQueryObject(query.get(), k);
+    KNNQuery<dist_t> knn(*space, query.get(), k);
+    {
+      py::gil_scoped_release l;
+      index->Search(&knn, -1);
+    }
+    std::unique_ptr<KNNQueue<dist_t>> res(knn.Result()->Clone());
+    return convertResult(res.get());
   }
 
   py::object knnQueryBatch(py::object input, size_t k, int num_threads) {
@@ -98,47 +105,35 @@ struct IndexWrapper {
 
     ObjectVector queries;
     readObjectVector(input, &queries);
-
-    py::list ret(queries.size());
-
-    #pragma omp parallel num_threads(num_threads)
-    if (1) {
-      // Initialize the newly created thread with python
-      py::gil_scoped_acquire l;
-
-      // Distribute the queries dynamically throughout the thread pool
-      #pragma omp for schedule(dynamic, 8)
+    std::vector<std::unique_ptr<KNNQueue<dist_t>>> results(queries.size());
+    {
+      py::gil_scoped_release l;
+      #pragma omp parallel for schedule(dynamic, 8) num_threads(num_threads)
       for (int i = 0; i < static_cast<int>(queries.size()); ++i) {
-        // Add the result to the output. Note the query function releases the GIL
-        // during the main query so that this can run in parallel (and re-acquires
-        // before returning)
-        ret[i] = knnQueryObject(queries[i], k);
+        KNNQuery<dist_t> knn(*space, queries[i], k);
+        index->Search(&knn, -1);
+        results[i].reset(knn.Result()->Clone());
       }
+
+      // TODO(@benfred): some sort of RAII auto-destroy for this
+      freeObjectVector(&queries);
     }
 
-    // TODO(@benfred): some sort of RAII auto-destroy for this
-    freeObjectVector(&queries);
-
+    py::list ret;
+    for (auto & result : results) {
+      ret.append(convertResult(result.get()));
+    }
     return ret;
   }
 
-  py::object knnQueryObject(const Object * query, size_t k) {
-    KNNQuery<dist_t> knn(*space, query, k);
-    {
-      py::gil_scoped_release l;
-      index->Search(&knn, -1);
-    }
-
+  py::object convertResult(KNNQueue<dist_t> * res) {
     // Create numpy arrays for the output
-    size_t size = knn.Result()->Size();
+    size_t size = res->Size();
     py::array_t<int> ids(size);
     py::array_t<dist_t> distances(size);
     auto raw_ids = ids.mutable_unchecked();
     auto raw_distances = distances.mutable_unchecked();
 
-    // Iterate over the queue, getting a copy so we can
-    // destructively pop elements off of it
-    std::unique_ptr<KNNQueue<dist_t>> res(knn.Result()->Clone());
     while (!res->Empty() && size > 0) {
       // iterating here in reversed order, undo that
       size -= 1;
@@ -146,7 +141,6 @@ struct IndexWrapper {
       raw_distances(size) = res->TopDistance();
       res->Pop();
     }
-
     return py::make_tuple(ids, distances);
   }
 
