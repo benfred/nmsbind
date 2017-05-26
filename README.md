@@ -1,5 +1,10 @@
+### This project has been integrated into NMSLIB!!
+
+```pip install nmslib``` should install the latest version of these bindings from the main [NMSLIB repo](https://github.com/searchivarius/nmslib) - please use that instead.
+
 nmsbind
 =======
+
 
 [![Build Status](https://travis-ci.org/benfred/nmsbind.svg?branch=master)](https://travis-ci.org/benfred/nmsbind)
 [![Windows Build

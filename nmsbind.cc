@@ -4,11 +4,13 @@
 #include <pybind11/numpy.h>
 #include <pybind11/stl.h>
 
+#include <atomic>
 #include <algorithm>
 #include <memory>
 #include <sstream>
 #include <stdexcept>
 #include <string>
+#include <thread>  // NOLINT(*)
 #include <vector>
 
 #include "nmslib/similarity_search/include/init.h"
@@ -106,11 +108,27 @@ struct IndexWrapper {
     std::vector<std::unique_ptr<KNNQueue<dist_t>>> results(queries.size());
     {
       py::gil_scoped_release l;
-      #pragma omp parallel for schedule(dynamic, 8) num_threads(num_threads)
-      for (int i = 0; i < static_cast<int>(queries.size()); ++i) {
-        KNNQuery<dist_t> knn(*space, queries[i], k);
-        index->Search(&knn, -1);
-        results[i].reset(knn.Result()->Clone());
+
+      std::vector<std::thread> threads;
+      std::atomic<size_t> current(0);
+
+      for (int i = 0; i < num_threads; ++i) {
+        threads.push_back(std::thread([&] {  // NOLINT(*)
+          while (true) {
+            size_t query_index = current.fetch_add(1);
+            if (query_index >= queries.size()) {
+              break;
+            }
+
+            KNNQuery<dist_t> knn(*space, queries[query_index], k);
+            index->Search(&knn, -1);
+            results[query_index].reset(knn.Result()->Clone());
+          }
+        }));
+      }
+
+      for (auto & thread : threads) {
+        thread.join();
       }
 
       // TODO(@benfred): some sort of RAII auto-destroy for this
@@ -173,7 +191,7 @@ struct IndexWrapper {
   // reads multiple items from a python object and inserts onto a similarity::ObjectVector
   // returns the number of elements inserted
   size_t readObjectVector(py::object input, ObjectVector * output,
-              py::object ids_ = py::none()) {
+                          py::object ids_ = py::none()) {
     std::vector<int> ids;
     if (ids_ != py::none()) {
       ids = py::cast<std::vector<int>>(ids_);
@@ -490,8 +508,8 @@ void exportIndex(py::module * m) {
       "    row id of each object in the dataset\n"
       "Returns\n"
       "----------\n"
-      "array_like\n"
-      "    The positions each item was added at\n")
+      "int\n"
+      "    The number of items added\n")
 
     .def_readonly("dataType", &IndexWrapper<dist_t>::data_type)
     .def_readonly("distType", &IndexWrapper<dist_t>::dist_type)
