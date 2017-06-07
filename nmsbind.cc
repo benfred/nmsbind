@@ -73,6 +73,10 @@ struct IndexWrapper {
     auto factory = MethodFactoryRegistry<dist_t>::Instance();
     index.reset(factory.CreateMethod(print_progress, method, space_type, *space, data));
     index->LoadIndex(filename);
+
+    // querying reloaded indices don't seem to work correctly (at least hnsw ones) until
+    // SetQueryTimeParams is called
+    index->ResetQueryTimeParams();
   }
 
   void saveIndex(const std::string & filename) {
@@ -151,14 +155,12 @@ struct IndexWrapper {
     size_t size = res->Size();
     py::array_t<int> ids(size);
     py::array_t<dist_t> distances(size);
-    auto raw_ids = ids.mutable_unchecked();
-    auto raw_distances = distances.mutable_unchecked();
 
     while (!res->Empty() && size > 0) {
       // iterating here in reversed order, undo that
       size -= 1;
-      raw_ids(size) = res->TopObject()->id();
-      raw_distances(size) = res->TopDistance();
+      ids.mutable_at(size) = res->TopObject()->id();
+      distances.mutable_at(size) = res->TopDistance();
       res->Pop();
     }
     return py::make_tuple(ids, distances);
